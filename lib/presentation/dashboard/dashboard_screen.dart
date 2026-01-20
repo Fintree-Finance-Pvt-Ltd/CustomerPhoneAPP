@@ -1,296 +1,304 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/presentation/auth/login_screen.dart';
 import 'package:flutter_application_1/presentation/dashboard/documents_screen.dart';
 import 'package:flutter_application_1/presentation/loan_details/loan_details_screen.dart';
 import 'package:flutter_application_1/presentation/repayments/repayment_screen.dart';
 import 'package:flutter_application_1/presentation/dashboard/support_screen.dart';
-import '../profile/user_profile_screen.dart';
+
+import '../../core/theme/app_colors.dart';
+import '../../core/services/api_service.dart';
 
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+
+class DashboardScreen extends StatefulWidget {
+  final int customerId;
+
+  const DashboardScreen({
+    super.key,
+    required this.customerId,
+  });
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool isLoading = true;
+
+  // 🔹 DATA FROM loan_booking_zypay_customer
+  Map<String, dynamic> loanData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    loadDashboardData();
+  }
+
+  // ================= FETCH DASHBOARD DATA =================
+Future<void> loadDashboardData() async {
+  try {
+    debugPrint("Dashboard → customerId: ${widget.customerId}");
+
+    // ✅ USE customerId from login
+    loanData = await ApiService.getLoanInfo(widget.customerId);
+
+    if (loanData.isEmpty) {
+      debugPrint("No loan found for customerId ${widget.customerId}");
+    } else {
+      debugPrint("Dashboard LAN fetched: ${loanData['lan']}");
+    }
+  } catch (e) {
+    debugPrint("Dashboard API error: $e");
+  }
+
+  if (mounted) {
+    setState(() => isLoading = false);
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
- // Mock customer data
-    final customer = {
-      "name": "Zypay Customer Name",
-      "phone": "+91 98765 43210",
-      "customerId": "CUST-2024-1234",
-      "email": "rajesh.kumar@example.com",
-      "address": "123, MG Road, Mumbai, Maharashtra",
-    };
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    // Mock loan data
-    final loans = [
-      {
-        "lan": "FTL000125",
-        "deviceName": "Samsung Galaxy M14",
+    // ================= SAFE VALUES =================
+    final String customerName =
+        loanData['customer_name'] ?? "ZyPay Customer";
+    final String lan = loanData['lan'] ?? "-";
+    final double emiAmount =
+    double.tryParse(loanData['emi_amount'].toString()) ?? 0.0;
 
-        
-        "nextEmiDate": "05 Jan 2026",
-        "emiAmount": 1200,
-        "overdueAmount": 0,
-        "principalAmount": 40000,
-        "totalAmount": 55000,
-        "paidAmount": 20800,
-        "tenure": 12,
-        "interestRate": 10.5,
-      },
-      {
-        "lan": "FTL000456",
-         "deviceName": "Samsung Galaxy S24",
-        "nextEmiDate": "01 Jan 2026",
-        "emiAmount": 3800,
-        "overdueAmount": 760,
-        "principalAmount": 40000,
-        "totalAmount": 44000,
-        "paidAmount": 15200,
-        "tenure": 12,
-        "interestRate": 10.0,
-      },
-      
-    ];
-final Map<String, dynamic> nextLoan = loans.first;
-
-final int emiAmount = nextLoan["emiAmount"] as int;
-final int overdueAmount = nextLoan["overdueAmount"] as int;
-final int dueAmount = emiAmount + overdueAmount;
-final String dueDate = nextLoan["nextEmiDate"] as String;
-final String lan = nextLoan["lan"] as String;
-
+    final String tenure =
+        loanData['loan_tenure']?.toString() ?? "-";
+    final String status = loanData['status'] ?? "-";
 
     return Scaffold(
-      // --- THE SIDEBAR (DRAWER) ---
+      // ================= DRAWER =================
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF0D47A1)),
+              decoration:
+                  const BoxDecoration(color: AppColors.drawerHeader),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  InkWell(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
-          customerData: customer, // correct variable
-        ),
-      ),
-    );
-  },
-  child: Column(
-    children: [
-  const CircleAvatar(
-    backgroundColor: Colors.white,
-    radius: 30,
-    child: Icon(
-      Icons.person,
-      size: 40,
-      color: Color(0xFF0D47A1),
-    ),
-  ),
-
-  const SizedBox(height: 10),
-
-  const Text(
-    "ZyPay Customer",
-    style: TextStyle(
-      color: Colors.white,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-
-  //  DYNAMIC LAN
-  Text(
-    "LAN: $lan",
-    style: TextStyle(
-      color: Colors.white.withOpacity(0.8),
-    ),
-  ),
-],
-
-  ),
-)
-
-
+                  const CircleAvatar(
+                    radius: 34,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person,
+                        size: 36, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    customerName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "LAN: $lan",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                    ),
+                  ),
                 ],
               ),
             ),
-            _buildDrawerItem(Icons.home, "Home ", () => Navigator.pop(context)),
-        // Inside the Drawer list in dashboard_screen.dart
-_buildDrawerItem(Icons.history, "Repayments", () {
-  Navigator.push(context, MaterialPageRoute(builder: (context) => const Repayment()));
-}),
-_buildDrawerItem(Icons.info, "Loan Details ", () {
-  Navigator.push(context, MaterialPageRoute(builder: (context) => const LoanDetailsScreen()));
 
-
-}),
-            _buildDrawerItem(Icons.help, "Support ", () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportScreen()));
+            _drawerItem(context, Icons.home, "Home", () {
+              Navigator.pop(context);
             }),
 
-_buildDrawerItem(Icons.edit_document,"Document",() { Navigator.push(context,
-      MaterialPageRoute(
-        builder: (context) => const DocumentsScreen(),
-      ),
-    );
-  },
-),
-
-
-
-            const Divider(),
-           _buildDrawerItem(Icons.logout, "Logout", () {
-  Navigator.pushAndRemoveUntil(
+            _drawerItem(context, Icons.history, "Repayments", () {
+  Navigator.push(
     context,
-    MaterialPageRoute(builder: (_) => const LoginScreen()),
-    (route) => false,
+    MaterialPageRoute(
+      builder: (_) => Repayment(customerId: widget.customerId),
+    ),
   );
 }),
 
+
+           _drawerItem(context, Icons.info, "Loan Details", () {
+  Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => LoanDetailsScreen(
+      customerId: widget.customerId,
+    ),
+  ),
+);
+}),
+
+
+            _drawerItem(context, Icons.help, "Support", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SupportScreen()),
+              );
+            }),
+
+            _drawerItem(context, Icons.edit_document, "Documents", () {
+              Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => DocumentsScreen(
+      customerId: widget.customerId,
+    ),
+  ),
+);
+            }),
+
+            const Divider(),
+
+            _drawerItem(context, Icons.logout, "Logout", () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            }),
           ],
         ),
       ),
-      
+
+      // ================= APP BAR =================
       appBar: AppBar(
-        title: const Text("ZyPay", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: const Color(0xFF0D47A1),
-        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
-      ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Company Logo on Dashboard
-            const Center(
-              child: Column(
-                children: [
-                  Icon(Icons.account_balance_wallet, size: 50, color: Color(0xFF43A047)),
-                  Text("ZyPay Finance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-                ],
+        title: RichText(
+          text: const TextSpan(
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            children: [
+              TextSpan(text: "Zy", style: TextStyle(color: Colors.green)),
+              TextSpan(
+                text: "Pay",
+                style: TextStyle(color: Color(0xFF4D92CA)),
               ),
-            ),
-            const SizedBox(height: 25),
-
-            // LARGE BALANCE CARD (Easy to read for everyone)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF43A047), width: 2),
-              ),
-              child: Column(
-                children: [
-                  // LARGE BALANCE CARD (Easy to read for everyone)
-Container(
-
-  child: Column(
-    children: [
-      const Text(
-        "Due Amount",
-        style: TextStyle(fontSize: 16, color: Colors.black87),
-      ),
-
-      const SizedBox(height: 5),
-
-      //  DYNAMIC AMOUNT
-      Text(
-        "₹$dueAmount",
-        style: const TextStyle(
-          fontSize: 40,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1B5E20),
-        ),
-      ),
-
-      const SizedBox(height: 8),
-
-      //  LAN
-      Text(
-        "LAN: $lan",
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-
-      const SizedBox(height: 10),
-
-      //  DYNAMIC DATE
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: overdueAmount > 0
-              ? Colors.red.shade100
-              : Colors.orange.shade100,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          "Due Date: $dueDate",
-          style: TextStyle(
-            color: overdueAmount > 0 ? Colors.red : Colors.orange,
-            fontWeight: FontWeight.bold,
+            ],
           ),
         ),
       ),
-    ],
-  ),
-),
 
-                ],
+      // ================= BODY =================
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/images/Zypay_logo.png',
+              height: 140,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 16),
+
+            SizedBox(
+              width: double.infinity,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Monthly EMI",
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "₹$emiAmount",
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "LAN: $lan",
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Tenure: $tenure | Status: $status",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            
-            const SizedBox(height: 25),
-            
-            // SIMPLE LARGE BUTTONS
-            _buildLargeMenuButton(context, "Pay Next EMI", Icons.payment, Colors.blue.shade800),
-             const SizedBox(height: 15),
-            _buildLargeMenuButton(context, "ForClouse", Icons.mobile_off, Colors.blue.shade800),
-            const SizedBox(height: 15),
-            _buildLargeMenuButton(context, "Call Support", Icons.phone_forwarded, Colors.green.shade700),
-                    
-        
+
+            const SizedBox(height: 20),
+            _largeButton(context, "Pay Next EMI", Icons.payment),
+            const SizedBox(height: 16),
+            _largeButton(context, "Foreclose", Icons.mobile_off),
+            const SizedBox(height: 16),
+            _largeButton(
+              context,
+              "Call Support",
+              Icons.phone_forwarded,
+              color: AppColors.secondary,
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Large Button Helper
-  Widget _buildLargeMenuButton(BuildContext context, String title, IconData icon, Color color) {
+  // ================= HELPERS =================
+
+  Widget _largeButton(BuildContext context, String title, IconData icon,
+      {Color? color}) {
     return SizedBox(
       width: double.infinity,
-      height: 100,
+      height: 65,
       child: ElevatedButton.icon(
         onPressed: () {},
-        icon: Icon(icon, size: 35, color: Colors.white),
-        label: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+        icon: Icon(icon, size: 28, color: Colors.white),
+        label: Text(
+          title,
+          style:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          backgroundColor: color ?? AppColors.primary,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         ),
       ),
     );
   }
 
-  // Sidebar Item Helper
-  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+  Widget _drawerItem(
+      BuildContext context, IconData icon, String title, VoidCallback onTap) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF0D47A1)),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      leading: Icon(icon, color: AppColors.primary),
+      title:
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       onTap: onTap,
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -7,6 +8,9 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
+
+
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
@@ -28,12 +32,8 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 800),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
-    );
+    _fadeAnimation =
+        Tween<double>(begin: 0, end: 1).animate(_animationController);
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
@@ -59,31 +59,22 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> handleLogin() async {
     if (isLoading) return;
 
-    String input = idController.text.trim();
+    final input = idController.text.trim();
 
-    if (input.isEmpty) {
+    if (input.isEmpty || input.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter Mobile or Customer ID")),
-      );
-      return;
-    }
-
-    if (input.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Input must be exactly 10 characters")),
+        const SnackBar(
+          content: Text("Enter valid Mobile or Customer ID"),
+        ),
       );
       return;
     }
 
     setState(() => isLoading = true);
-
     await Future.delayed(const Duration(milliseconds: 1200));
-
     if (!mounted) return;
 
     setState(() => isLoading = false);
-
-    //  Replace stack so Drawer never leaks back
     Navigator.pushReplacementNamed(context, '/otp');
   }
 
@@ -92,24 +83,25 @@ class _LoginScreenState extends State<LoginScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      //  HARD BLOCK DRAWER
       drawer: null,
       drawerEnableOpenDragGesture: false,
       resizeToAvoidBottomInset: true,
 
       body: GestureDetector(
-        //  Dismiss keyboard safely
         onTap: () => FocusScope.of(context).unfocus(),
         child: Container(
           width: double.infinity,
           height: double.infinity,
+
+          // 🔵 THEME GRADIENT
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0D47A1), Color(0xFF43A047)],
+              colors: [AppColors.primary, AppColors.secondary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
+
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -120,40 +112,48 @@ class _LoginScreenState extends State<LoginScreen>
                     position: _slideAnimation,
                     child: Column(
                       children: [
-                        // Logo
-                        Container(
-                          height: 100,
-                          width: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.account_balance_wallet_rounded,
-                            size: 50,
-                            color: Color(0xFF0D47A1),
-                          ),
-                        ),
+                        // 🔵 LOGO
+                       
+                          
 
-                        const SizedBox(height: 32),
 
-                        const Text(
-                          "FinTree Portal",
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+Container(
+  height: 180,
+  width: 180,
+  decoration: BoxDecoration(
+    shape: BoxShape.circle,
+    color: Colors.white,
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.15),
+        blurRadius: 20,
+        offset: const Offset(0, 10),
+      ),
+    ],
+  ),
+  child: ClipOval(
+    child: Image.asset(
+      'assets/images/Zypay_background.jpeg',
+      fit: BoxFit.cover,
+    ),
+  ),
+),
 
-                        const SizedBox(height: 10),
+const SizedBox(height: 24),
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        
 
                         Text(
                           "Enter details to access your loan account",
@@ -166,14 +166,14 @@ class _LoginScreenState extends State<LoginScreen>
 
                         const SizedBox(height: 48),
 
-                        // Card
+                        //  LOGIN CARD
                         Container(
                           constraints: BoxConstraints(
-                            maxWidth: size.width > 600 ? 400 : double.infinity,
+                            maxWidth: size.width > 600 ? 420 : double.infinity,
                           ),
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.cardBg,
                             borderRadius: BorderRadius.circular(22),
                             boxShadow: [
                               BoxShadow(
@@ -191,31 +191,31 @@ class _LoginScreenState extends State<LoginScreen>
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF0D47A1),
+                                  color: AppColors.primary,
                                 ),
                               ),
 
                               const SizedBox(height: 12),
 
                               TextField(
-                                controller: idController,
-                                focusNode: idFocus,
-                                keyboardType:
-                                    TextInputType.visiblePassword,
-                                inputFormatters: [
-                                  LengthLimitingTextInputFormatter(10),
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[a-zA-Z0-9]'),
-                                  ),
-                                ],
-                                decoration: InputDecoration(
-                                  hintText: "10-digit Mobile or ID",
-                                  prefixIcon: const Icon(
-                                    Icons.person_pin_rounded,
-                                    color: Color(0xFF0D47A1),
-                                  ),
+  controller: idController,
+  focusNode: idFocus,
+  autofocus: true, // Automatically requests keyboard on load
+  keyboardType: TextInputType.number, // Better for emulators and mobile users
+  inputFormatters: [
+    LengthLimitingTextInputFormatter(10),
+    FilteringTextInputFormatter.digitsOnly, // Specific to numbers if it's a mobile ID
+  ],
+  decoration: InputDecoration(
+    counterText: "", // Hides the 0/10 counter
+    hintText: "10-digit Mobile or ID",
+    prefixIcon: const Icon(
+      Icons.person_pin_rounded,
+      color: AppColors.primary,
+    ),
                                   filled: true,
-                                  fillColor: Colors.grey.shade50,
+                                  fillColor:
+                                      AppColors.scaffoldBg.withOpacity(0.8),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
                                     borderSide: BorderSide.none,
@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF0D47A1),
+                                      color: AppColors.primary,
                                       width: 2,
                                     ),
                                   ),
@@ -237,26 +237,14 @@ class _LoginScreenState extends State<LoginScreen>
                                 height: 56,
                                 child: ElevatedButton(
                                   onPressed: handleLogin,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color(0xFF0D47A1),
-                                        foregroundColor:   const Color.fromARGB(255, 248, 248, 248),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(16),
-                                    ),
-                                  ),
                                   child: isLoading
                                       ? const CircularProgressIndicator(
                                           color: Colors.white,
                                         )
                                       : const Text(
                                           "SECURE LOGIN",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1,
-                                          ),
+                                          
+                                    
                                         ),
                                 ),
                               ),
@@ -267,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(height: 32),
 
                         const Text(
-                          "SSL Encrypted • Secure Session",
+                          " SSL Encrypted • Secure Session",
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white,
