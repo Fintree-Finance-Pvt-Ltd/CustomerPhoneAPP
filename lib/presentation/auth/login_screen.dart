@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_application_1/core/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,13 +13,10 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-
-
-
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final TextEditingController idController = TextEditingController();
-  final FocusNode idFocus = FocusNode();
+  final TextEditingController panController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
 
@@ -50,50 +51,72 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    idController.dispose();
-    idFocus.dispose();
+    panController.dispose();
+    passwordController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> handleLogin() async {
-    if (isLoading) return;
+  // ================= LOGIN HANDLER =================
+ Future<void> handleLogin() async {
+  if (isLoading) return;
 
-    final input = idController.text.trim();
+  final pan = panController.text.trim().toUpperCase();
+  final password = passwordController.text.trim();
 
-    if (input.isEmpty || input.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Enter valid Mobile or Customer ID"),
-        ),
-      );
-      return;
-    }
+  if (pan.length != 10) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Enter valid PAN number")),
+    );
+    return;
+  }
 
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+  if (password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Enter password")),
+    );
+    return;
+  }
+
+  setState(() => isLoading = true);
+
+  try {
+    final data = await ApiService.login(pan, password);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("jwt", data["token"]);
+
     if (!mounted) return;
 
-    setState(() => isLoading = false);
-    Navigator.pushReplacementNamed(context, '/otp');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DashboardScreen(),
+      ),
+    );
+  } catch (e) {
+    debugPrint("Login error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Login failed. Please try again")),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
+}
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      drawer: null,
-      drawerEnableOpenDragGesture: false,
       resizeToAvoidBottomInset: true,
-
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Container(
           width: double.infinity,
           height: double.infinity,
-
-          // 🔵 THEME GRADIENT
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [AppColors.primary, AppColors.secondary],
@@ -101,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen>
               end: Alignment.bottomRight,
             ),
           ),
-
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -112,48 +134,30 @@ class _LoginScreenState extends State<LoginScreen>
                     position: _slideAnimation,
                     child: Column(
                       children: [
-                        // 🔵 LOGO
-                       
-                          
+                        // LOGO
+                        Container(
+                          height: 180,
+                          width: 180,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/Zypay_background.jpeg',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
 
-
-Container(
-  height: 180,
-  width: 180,
-  decoration: BoxDecoration(
-    shape: BoxShape.circle,
-    color: Colors.white,
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.15),
-        blurRadius: 20,
-        offset: const Offset(0, 10),
-      ),
-    ],
-  ),
-  child: ClipOval(
-    child: Image.asset(
-      'assets/images/Zypay_background.jpeg',
-      fit: BoxFit.cover,
-    ),
-  ),
-),
-
-const SizedBox(height: 24),
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        
+                        const SizedBox(height: 24),
 
                         Text(
                           "Enter details to access your loan account",
@@ -166,7 +170,7 @@ const SizedBox(height: 24),
 
                         const SizedBox(height: 48),
 
-                        //  LOGIN CARD
+                        // LOGIN CARD
                         Container(
                           constraints: BoxConstraints(
                             maxWidth: size.width > 600 ? 420 : double.infinity,
@@ -187,47 +191,44 @@ const SizedBox(height: 24),
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                "Mobile / Customer ID",
+                                "PAN Number",
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.primary,
                                 ),
                               ),
-
                               const SizedBox(height: 12),
-
                               TextField(
-  controller: idController,
-  focusNode: idFocus,
-  autofocus: true, // Automatically requests keyboard on load
-  keyboardType: TextInputType.number, // Better for emulators and mobile users
-  inputFormatters: [
-    LengthLimitingTextInputFormatter(10),
-    FilteringTextInputFormatter.digitsOnly, // Specific to numbers if it's a mobile ID
-  ],
-  decoration: InputDecoration(
-    counterText: "", // Hides the 0/10 counter
-    hintText: "10-digit Mobile or ID",
-    prefixIcon: const Icon(
-      Icons.person_pin_rounded,
-      color: AppColors.primary,
-    ),
-                                  filled: true,
-                                  fillColor:
-                                      AppColors.scaffoldBg.withOpacity(0.8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
+                                controller: panController,
+                                maxLength: 10,
+                                textCapitalization:
+                                    TextCapitalization.characters,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp('[A-Z0-9]'),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primary,
-                                      width: 2,
-                                    ),
-                                  ),
+                                ],
+                                decoration: _inputDecoration(
+                                    "ABCDE1234F", Icons.badge),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              const Text(
+                                "Password",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
                                 ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: passwordController,
+                                obscureText: true,
+                                decoration: _inputDecoration(
+                                    "Enter password", Icons.lock),
                               ),
 
                               const SizedBox(height: 32),
@@ -241,11 +242,7 @@ const SizedBox(height: 24),
                                       ? const CircularProgressIndicator(
                                           color: Colors.white,
                                         )
-                                      : const Text(
-                                          "SECURE LOGIN",
-                                          
-                                    
-                                        ),
+                                      : const Text("SECURE LOGIN"),
                                 ),
                               ),
                             ],
@@ -255,11 +252,9 @@ const SizedBox(height: 24),
                         const SizedBox(height: 32),
 
                         const Text(
-                          " SSL Encrypted • Secure Session",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
-                          ),
+                          "SSL Encrypted • Secure Session",
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.white),
                         ),
                       ],
                     ),
@@ -269,6 +264,20 @@ const SizedBox(height: 24),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint, IconData icon) {
+    return InputDecoration(
+      counterText: "",
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AppColors.primary),
+      filled: true,
+      fillColor: AppColors.scaffoldBg.withOpacity(0.8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
       ),
     );
   }

@@ -3,12 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/services/api_service.dart';
 
 class Repayment extends StatefulWidget {
-  final int customerId;
-
-  const Repayment({
-    super.key,
-    required this.customerId,
-  });
+  const Repayment({super.key});
 
   @override
   State<Repayment> createState() => _RepaymentState();
@@ -24,29 +19,21 @@ class _RepaymentState extends State<Repayment> {
     loadRepayments();
   }
 
+  // ================= FETCH REPAYMENTS (JWT ONLY) =================
   Future<void> loadRepayments() async {
     try {
-      // 1️⃣ Fetch loan info using customerId
-      final loanInfo = await ApiService.getLoanInfo(widget.customerId);
+      debugPrint("Repayments → loading via JWT");
 
-      if (loanInfo.isEmpty || loanInfo['lan'] == null) {
-        debugPrint("No loan found for customerId ${widget.customerId}");
-        payments = [];
-      } else {
-        final String lan = loanInfo['lan'];
-
-        debugPrint("CustomerId: ${widget.customerId}");
-        debugPrint("LAN fetched: $lan");
-
-        // 2️⃣ Fetch repayments using LAN
-        payments = await ApiService.getRepaymentsByLan(lan);
-      }
+      // ✅ SINGLE JWT-BASED API
+      payments = await ApiService.getRepayments();
     } catch (e) {
-      debugPrint("Repayment error: $e");
+      debugPrint("Repayment API error: $e");
       payments = [];
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -72,6 +59,11 @@ class _RepaymentState extends State<Repayment> {
                     final String dueDate =
                         item['due_date'].toString().split('T')[0];
 
+                    final String amount =
+                        item['emi']?.toString() ??
+                        item['amount']?.toString() ??
+                        "0";
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
@@ -91,9 +83,8 @@ class _RepaymentState extends State<Repayment> {
                                 isPaid
                                     ? Icons.check_circle
                                     : Icons.schedule,
-                                color: isPaid
-                                    ? Colors.green
-                                    : Colors.orange,
+                                color:
+                                    isPaid ? Colors.green : Colors.orange,
                               ),
                             ),
 
@@ -105,7 +96,7 @@ class _RepaymentState extends State<Repayment> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "₹${item['emi']}",
+                                    "₹$amount",
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -131,7 +122,8 @@ class _RepaymentState extends State<Repayment> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.green,
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius:
+                                          BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       "Paid",
@@ -143,7 +135,8 @@ class _RepaymentState extends State<Repayment> {
                                   )
                                 : ElevatedButton(
                                     onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             "Payment flow coming soon",
@@ -154,9 +147,11 @@ class _RepaymentState extends State<Repayment> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
                                       ),
-                                      padding: const EdgeInsets.symmetric(
+                                      padding:
+                                          const EdgeInsets.symmetric(
                                         horizontal: 18,
                                         vertical: 10,
                                       ),

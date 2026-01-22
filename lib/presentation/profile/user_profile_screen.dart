@@ -2,16 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/services/api_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
-  final int customerId;
-
-  const UserProfileScreen({
-    super.key,
-    required this.customerId,
-  });
+  const UserProfileScreen({super.key});
 
   @override
-  State<UserProfileScreen> createState() =>
-      _UserProfileScreenState();
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
@@ -24,17 +18,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     loadProfile();
   }
 
+  // ================= LOAD PROFILE (JWT ONLY) =================
   Future<void> loadProfile() async {
     try {
-      profile = await ApiService.getProfile(widget.customerId);
+      debugPrint("Profile → loading via JWT");
+
+      // ✅ SINGLE JWT-BASED API
+      profile = await ApiService.getProfile();
     } catch (e) {
       debugPrint("Profile API error: $e");
+      profile = {};
     }
-    setState(() => isLoading = false);
+
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final String fullName =
+        "${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}".trim();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Profile"),
@@ -43,67 +48,80 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 45,
-                    backgroundColor: Colors.blue.shade100,
-                    child: const Icon(
-                      Icons.person,
-                      size: 50,
-                      color: Color(0xFF0D47A1),
-                    ),
-                  ),
+          : profile.isEmpty
+              ? const Center(child: Text("Profile data not found"))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 45,
+                        backgroundColor: Colors.blue.shade100,
+                        child: const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Color(0xFF0D47A1),
+                        ),
+                      ),
 
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                  Text(
-                    profile["name"] ?? "-",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                      Text(
+                        fullName.isNotEmpty
+                            ? fullName
+                            : profile['customer_name']?.toString() ?? "-",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-                  const SizedBox(height: 6),
+                      const SizedBox(height: 6),
 
-                  Text(
-                    "Customer ID: ${profile["id"]}",
-                    style: const TextStyle(color: Colors.grey),
-                  ),
+                      Text(
+                        "LAN: ${profile['lan'] ?? '-'}",
+                        style: const TextStyle(color: Colors.grey),
+                      ),
 
-                  const SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
-                  _infoTile(
-                    "Mobile Number",
-                    profile["phone"] ?? "-",
-                    Icons.phone,
+                      _infoTile(
+                        "Mobile Number",
+                        profile['mobile_number']?.toString() ?? "-",
+                        Icons.phone,
+                      ),
+
+                      _infoTile(
+                        "Email",
+                        profile['email_id']?.toString() ?? "-",
+                        Icons.email,
+                      ),
+
+                      _infoTile(
+                        "Gender",
+                        profile['gender']?.toString() ?? "-",
+                        Icons.person_outline,
+                      ),
+
+                      _infoTile(
+                        "Date of Birth",
+                        profile['dob']?.toString().split('T').first ?? "-",
+                        Icons.cake,
+                      ),
+
+                      _infoTile(
+                        "Account Status",
+                        profile['status']?.toString() ?? "Active",
+                        Icons.check_circle,
+                      ),
+                    ],
                   ),
-                  _infoTile(
-                    "Email",
-                    profile["email"] ?? "-",
-                    Icons.email,
-                  ),
-                  _infoTile(
-                    "Address",
-                    profile["address"] ?? "-",
-                    Icons.location_on,
-                  ),
-                  _infoTile(
-                    "Account Status",
-                    "Active",
-                    Icons.check_circle,
-                  ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 
-  Widget _infoTile(
-      String label, String value, IconData icon) {
+  // ================= INFO TILE =================
+  Widget _infoTile(String label, String value, IconData icon) {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),

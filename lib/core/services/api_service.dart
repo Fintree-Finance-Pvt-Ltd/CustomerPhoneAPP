@@ -1,110 +1,157 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
-  // 🔹 Backend base URL
-  static const String baseUrl = "http://localhost:5000/api";
+  // ===============================
+  // 🌐 BASE URL (from .env)
+  // ===============================
+  static final String baseUrl =
+      dotenv.env['API_BASE_URL'] ?? 'http://localhost:5000/api';
+
+  static final String jwtKey =
+      dotenv.env['JWT_STORAGE_KEY'] ?? 'jwt';
 
   // ===============================
-  // LOGIN
+  // 🔐 GET JWT TOKEN
   // ===============================
-  static Future<Map<String, dynamic>> login(String email) async {
-    final response = await http.post(
+  static Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(jwtKey);
+
+    if (token == null || token.isEmpty) {
+      throw Exception("JWT token missing");
+    }
+    return token;
+  }
+
+  // ===============================
+  // 🔑 COMMON AUTH HEADERS
+  // ===============================
+  static Future<Map<String, String>> _authHeaders() async {
+    final token = await _getToken();
+    return {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
+  }
+
+  // ===============================
+  // 🔓 LOGIN (PAN + PASSWORD → JWT)
+  // ===============================
+  static Future<Map<String, dynamic>> login(
+    String panNumber,
+    String password,
+  ) async {
+    final res = await http.post(
       Uri.parse("$baseUrl/login"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email}),
+      body: jsonEncode({
+        "panNumber": panNumber,
+        "password": password,
+      }),
     );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
     } else {
-      throw Exception("Login failed");
+      throw Exception("Login failed: ${res.body}");
     }
   }
 
   // ===============================
-  // PROFILE
+  // 🏠 DASHBOARD SUMMARY (JWT BASED)
   // ===============================
-  static Future<Map<String, dynamic>> getProfile(int id) async {
-    final response =
-        await http.get(Uri.parse("$baseUrl/profile/$id"));
+  static Future<Map<String, dynamic>> getDashboardSummary() async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/dashboard"),
+      headers: await _authHeaders(),
+    );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    } else {
+      throw Exception("Dashboard load failed");
+    }
+  }
+
+  // ===============================
+  // 👤 USER PROFILE (JWT BASED)
+  // ===============================
+  static Future<Map<String, dynamic>> getProfile() async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/profile"),
+      headers: await _authHeaders(),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
     } else {
       throw Exception("Profile load failed");
     }
   }
 
   // ===============================
-  // LOAN (BASIC)
+  // 💳 REPAYMENTS (JWT BASED)
   // ===============================
-  static Future<Map<String, dynamic>> getLoan(int customerId) async {
-    final response =
-        await http.get(Uri.parse("$baseUrl/loan/$customerId"));
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Loan load failed");
-    }
-  }
-
-  // ===============================
-  // LOAN META
-  // ===============================
-  static Future<Map<String, dynamic>> getLoanMeta(int customerId) async {
-    final response =
-        await http.get(Uri.parse("$baseUrl/loan-meta/$customerId"));
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Loan meta load failed");
-    }
-  }
-
-  // GET LOAN INFO (SINGLE TABLE)
-  // ===============================
-  static Future<Map<String, dynamic>> getLoanInfo(int customerId) async {
-    final res =
-        await http.get(Uri.parse("$baseUrl/loan-info/$customerId"));
+  static Future<List<Map<String, dynamic>>> getRepayments() async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/repayments"),
+      headers: await _authHeaders(),
+    );
 
     if (res.statusCode == 200) {
-      return jsonDecode(res.body);
+      final List data = jsonDecode(res.body);
+      return data.cast<Map<String, dynamic>>();
     } else {
-      throw Exception("Loan info load failed");
+      throw Exception("Repayments load failed");
     }
   }
-// ===============================
-// GET REPAYMENTS BY LAN
-// ===============================
-static Future<List<Map<String, dynamic>>> getRepaymentsByLan(
-    String lan) async {
-  final res =
-      await http.get(Uri.parse("$baseUrl/repayments/$lan"));
 
-  if (res.statusCode == 200) {
-    final List data = jsonDecode(res.body);
-    return data.cast<Map<String, dynamic>>();
-  } else {
-    throw Exception("Failed to load repayments");
+  // ===============================
+  // 📁 DOCUMENTS (JWT BASED)
+  // ===============================
+  static Future<List<Map<String, dynamic>>> getDocuments() async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/documents"),
+      headers: await _authHeaders(),
+    );
+
+    if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception("Documents load failed");
+    }
   }
-}
 
+  // ===============================
+  // 🚪 LOGOUT
+  // ===============================
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(jwtKey);
+  }
+
+  // ===============================
+// 📄 LOAN DETAILS (JWT BASED)
 // ===============================
-// GET DOCUMENTS BY LAN
-// ===============================
-static Future<List<Map<String, dynamic>>> getDocumentsByLan(
-    String lan) async {
-  final res =
-      await http.get(Uri.parse("$baseUrl/documents/$lan"));
+static Future<Map<String, dynamic>> getLoanDetails() async {
+  final token = await _getToken();
+
+  final res = await http.get(
+    Uri.parse("$baseUrl/loan-details"),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    },
+  );
 
   if (res.statusCode == 200) {
-    final List data = jsonDecode(res.body);
-    return data.cast<Map<String, dynamic>>();
+    return jsonDecode(res.body);
   } else {
-    throw Exception("Failed to load documents");
+    throw Exception("Loan details load failed");
   }
 }
 

@@ -4,6 +4,9 @@ import 'package:flutter_application_1/presentation/dashboard/documents_screen.da
 import 'package:flutter_application_1/presentation/loan_details/loan_details_screen.dart';
 import 'package:flutter_application_1/presentation/repayments/repayment_screen.dart';
 import 'package:flutter_application_1/presentation/dashboard/support_screen.dart';
+import 'package:flutter_application_1/presentation/profile/user_profile_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_application_1/core/session/app_session.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -11,42 +14,48 @@ import '../../core/services/api_service.dart';
 
 
 class DashboardScreen extends StatefulWidget {
-  final int customerId;
-
-  const DashboardScreen({
-    super.key,
-    required this.customerId,
-  });
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 
+
 class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
 
-  // 🔹 DATA FROM loan_booking_zypay_customer
+  String appVersion = ""; // ✅ ADD THIS
+
   Map<String, dynamic> loanData = {};
 
-  @override
-  void initState() {
-    super.initState();
-    loadDashboardData();
+@override
+void initState() {
+  super.initState();
+  loadDashboardData();
+  loadAppVersion(); 
+}
+Future<void> loadAppVersion() async {
+  final info = await PackageInfo.fromPlatform();
+  if (mounted) {
+    setState(() {
+      appVersion = "v${info.version}+${info.buildNumber}";
+    });
   }
+}
 
   // ================= FETCH DASHBOARD DATA =================
 Future<void> loadDashboardData() async {
   try {
-    debugPrint("Dashboard → customerId: ${widget.customerId}");
+    debugPrint("Dashboard → loading via JWT");
 
-    // ✅ USE customerId from login
-    loanData = await ApiService.getLoanInfo(widget.customerId);
+    // ✅ NEW API (JWT based)
+    loanData = await ApiService.getDashboardSummary();
 
     if (loanData.isEmpty) {
-      debugPrint("No loan found for customerId ${widget.customerId}");
+      debugPrint("No loan data found");
     } else {
-      debugPrint("Dashboard LAN fetched: ${loanData['lan']}");
+      debugPrint("Dashboard LAN: ${loanData['lan']}");
     }
   } catch (e) {
     debugPrint("Dashboard API error: $e");
@@ -78,99 +87,138 @@ Future<void> loadDashboardData() async {
     final String status = loanData['status'] ?? "-";
 
     return Scaffold(
-      // ================= DRAWER =================
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+     drawer: Drawer(
+  child: ListView(
+    padding: EdgeInsets.zero,
+    children: [
+      // ================= HEADER =================
+      DrawerHeader(
+        decoration: const BoxDecoration(
+          color: AppColors.drawerHeader,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            DrawerHeader(
-              decoration:
-                  const BoxDecoration(color: AppColors.drawerHeader),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircleAvatar(
-                    radius: 34,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person,
-                        size: 36, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    customerName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "LAN: $lan",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                    ),
-                  ),
-                ],
+            const CircleAvatar(
+              radius: 34,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.person,
+                size: 36,
+                color: AppColors.primary,
               ),
             ),
-
-            _drawerItem(context, Icons.home, "Home", () {
-              Navigator.pop(context);
-            }),
-
-            _drawerItem(context, Icons.history, "Repayments", () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => Repayment(customerId: widget.customerId),
-    ),
-  );
-}),
-
-
-           _drawerItem(context, Icons.info, "Loan Details", () {
-  Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => LoanDetailsScreen(
-      customerId: widget.customerId,
-    ),
-  ),
-);
-}),
-
-
-            _drawerItem(context, Icons.help, "Support", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SupportScreen()),
-              );
-            }),
-
-            _drawerItem(context, Icons.edit_document, "Documents", () {
-              Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => DocumentsScreen(
-      customerId: widget.customerId,
-    ),
-  ),
-);
-            }),
-
-            const Divider(),
-
-            _drawerItem(context, Icons.logout, "Logout", () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
-            }),
+            const SizedBox(height: 10),
+            Text(
+              customerName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "LAN: $lan",
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+              ),
+            ),
           ],
         ),
       ),
+
+      // ================= HOME =================
+      _drawerItem(context, Icons.home, "Home", () {
+        Navigator.pop(context);
+      }),
+
+      // ================= MY PROFILE =================
+      _drawerItem(context, Icons.person, "My Profile", () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const UserProfileScreen(),
+          ),
+        );
+      }),
+
+      // ================= REPAYMENTS =================
+      _drawerItem(context, Icons.history, "Repayments", () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const Repayment(),
+          ),
+        );
+      }),
+
+      // ================= LOAN DETAILS =================
+      _drawerItem(context, Icons.info, "Loan Details", () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LoanDetailsScreen(),
+          ),
+        );
+      }),
+
+      // ================= DOCUMENTS =================
+      _drawerItem(context, Icons.edit_document, "Documents", () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DocumentsScreen(),
+          ),
+        );
+      }),
+
+      // ================= SUPPORT =================
+      _drawerItem(context, Icons.help, "Support", () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SupportScreen(),
+          ),
+        );
+      }),
+
+      const Divider(),
+
+      // ================= LOGOUT =================
+      _drawerItem(context, Icons.logout, "Logout", () {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LoginScreen(),
+          ),
+          (route) => false,
+        );
+      }),
+
+      // ================= APP VERSION =================
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: Text(
+            appVersion.isEmpty ? "" : "ZyPay App $appVersion",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
 
       // ================= APP BAR =================
       appBar: AppBar(
@@ -257,12 +305,12 @@ Future<void> loadDashboardData() async {
             const SizedBox(height: 16),
             _largeButton(context, "Foreclose", Icons.mobile_off),
             const SizedBox(height: 16),
-            _largeButton(
-              context,
-              "Call Support",
-              Icons.phone_forwarded,
-              color: AppColors.secondary,
-            ),
+            // _largeButton(
+            //   context,
+            //   "Call Support",
+            //   Icons.phone_forwarded,
+            //   color: AppColors.secondary,
+            // ),
           ],
         ),
       ),

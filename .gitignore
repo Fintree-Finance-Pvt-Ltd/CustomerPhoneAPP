@@ -43,3 +43,21 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+
+# ===============================
+# Environment & Secrets
+# ===============================
+.env
+.env.*
+
+# ===============================
+# App runtime / session
+# ===============================
+lib/core/session/
+
+# ===============================
+# VS Code (optional but recommended)
+# ===============================
+.vscode/

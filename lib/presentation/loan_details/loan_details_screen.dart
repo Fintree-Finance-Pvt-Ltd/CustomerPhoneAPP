@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/services/api_service.dart';
 
-class LoanDetailsScreen extends StatefulWidget {
-  final int customerId;
 
-  const LoanDetailsScreen({
-    super.key,
-    required this.customerId,
-  });
+
+class LoanDetailsScreen extends StatefulWidget {
+  const LoanDetailsScreen({super.key});
 
   @override
   State<LoanDetailsScreen> createState() => _LoanDetailsScreenState();
@@ -16,7 +13,7 @@ class LoanDetailsScreen extends StatefulWidget {
 class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
   bool isLoading = true;
 
-  // 🔹 DATA FROM BACKEND
+  // 🔹 DATA FROM BACKEND (JWT BASED)
   Map<String, dynamic> loanData = {};
 
   @override
@@ -25,21 +22,16 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     fetchLoanDetails();
   }
 
-  // ---------------- FETCH LOAN INFO ----------------
+  // ================= FETCH LOAN DETAILS (JWT ONLY) =================
   Future<void> fetchLoanDetails() async {
     try {
-      debugPrint("LoanDetails → customerId: ${widget.customerId}");
+      debugPrint("LoanDetails → loading via JWT");
 
-      // ✅ FETCH USING customerId FROM LOGIN
-      loanData = await ApiService.getLoanInfo(widget.customerId);
-
-      if (loanData.isEmpty) {
-        debugPrint("No loan found for customerId ${widget.customerId}");
-      } else {
-        debugPrint("LAN verified: ${loanData['lan']}");
-      }
+      // ✅ SINGLE JWT-BASED API
+      loanData = await ApiService.getLoanDetails();
     } catch (e) {
-      debugPrint("Loan Info API error: $e");
+      debugPrint("LoanDetails API error: $e");
+      loanData = {};
     }
 
     if (mounted) {
@@ -85,32 +77,37 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
 
                       _buildFormField(
                         "Customer Name",
-                        loanData['customer_name'] ?? "-",
+                        loanData['customer_name']?.toString() ?? "-",
                         Icons.person,
                       ),
 
                       _buildFormField(
                         "LAN ID",
-                        loanData['lan'] ?? "-",
+                        loanData['lan']?.toString() ?? "-",
                         Icons.fingerprint,
                       ),
 
                       _buildFormField(
                         "Mobile Number",
-                        loanData['mobile_number'] ?? "-",
+                        loanData['mobile_number']?.toString() ?? "-",
                         Icons.phone_android,
                       ),
 
                       _buildFormField(
                         "Monthly EMI",
-                        "₹${double.tryParse(loanData['emi_amount']?.toString() ?? '0')?.toStringAsFixed(0)}",
+                        "₹${double.tryParse(
+                          loanData['emi_amount']?.toString() ?? '0',
+                        )?.toStringAsFixed(0)}",
                         Icons.event_repeat,
                       ),
 
                       _buildFormField(
                         "Total Duration (Months)",
                         loanData['loan_tenure'] != null
-                            ? loanData['loan_tenure'].toString().split('.').first
+                            ? loanData['loan_tenure']
+                                .toString()
+                                .split('.')
+                                .first
                             : "-",
                         Icons.timelapse,
                       ),
@@ -146,7 +143,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     );
   }
 
-  // ---------------- FORM FIELD BUILDER ----------------
+  // ================= FORM FIELD BUILDER =================
   Widget _buildFormField(String label, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
