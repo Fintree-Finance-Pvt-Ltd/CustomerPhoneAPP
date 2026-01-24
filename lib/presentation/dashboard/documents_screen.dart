@@ -13,10 +13,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   bool isLoading = true;
   List<Map<String, dynamic>> documents = [];
 
-  // 🔹 Public document base URL
+  // 🔹 PUBLIC DOCUMENT BASE URL
   static const String baseUrl = "https://fintreelms.com/uploads/";
 
-  // ✅ ALLOWED DOCUMENT TYPES
+  //  ALLOWED DOCUMENT TYPES
   static const Set<String> allowedDocs = {
     "DEALER_PHOTO_WITH_CUSTOMER",
     "CUSTOMER_PHOTO",
@@ -24,6 +24,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     "CUSTOMER_PHONE_BOX_PIC",
     "OPEN_BOX_PIC",
     "INVOICE",
+    "AGREEMENT_SIGNED", 
   };
 
   @override
@@ -32,15 +33,13 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     loadDocuments();
   }
 
-  // ================= FETCH DOCUMENTS (JWT ONLY) =================
+  // ================= FETCH DOCUMENTS (JWT BASED) =================
   Future<void> loadDocuments() async {
     try {
       debugPrint("Documents → loading via JWT");
 
-      // ✅ SINGLE API HIT (JWT BASED)
       final allDocs = await ApiService.getDocuments();
 
-      // ✅ FILTER REQUIRED DOCUMENTS ONLY
       documents = allDocs.where((doc) {
         final name = doc['doc_name']?.toString().toUpperCase() ?? "";
         return allowedDocs.contains(name);
@@ -55,7 +54,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
-  // ================= OPEN DOCUMENT =================
+  // ================= OPEN DOCUMENT (EXTERNAL) =================
   Future<void> openDocument(String fileName) async {
     if (fileName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -66,10 +65,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
     final Uri url = Uri.parse("$baseUrl$fileName");
 
-    if (!await launchUrl(
+    final bool opened = await launchUrl(
       url,
       mode: LaunchMode.externalApplication,
-    )) {
+    );
+
+    if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Unable to open document")),
       );
@@ -100,35 +101,43 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                     final String fileName =
                         doc['file_name']?.toString() ?? "";
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.description,
-                          color: Colors.blue,
-                          size: 32,
-                        ),
-                        title: Text(
-                          docName.replaceAll("_", " "),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          originalName,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: ElevatedButton(
-                          onPressed: fileName.isEmpty
-                              ? null
-                              : () => openDocument(fileName),
-                          child: const Text("View"),
-                        ),
-                      ),
-                    );
+                    return SizedBox(
+  height: 90, // 👈 set your desired height
+  child: Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: ListTile(
+      leading: const Icon(
+        Icons.description,
+        color: Colors.blue,
+        size: 32,
+      ),
+      title: Text(
+        docName.replaceAll("_", " "),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      trailing: Padding(
+  padding: const EdgeInsets.only(top:10), //  space from top
+  child: SizedBox(
+    height: 70,
+    width: 90,
+    child: ElevatedButton(
+      onPressed: fileName.isEmpty
+          ? null
+          : () => openDocument(fileName),
+      child: const Text("View"),
+    ),
+  ),
+),
+
+    ),
+  ),
+);
+
                   },
                 ),
     );

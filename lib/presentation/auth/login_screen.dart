@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/core/services/api_service.dart';
+import 'package:flutter_application_1/presentation/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../core/theme/app_colors.dart';
 import '../dashboard/dashboard_screen.dart';
 
@@ -33,18 +33,18 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 800),
     );
 
-    _fadeAnimation =
-        Tween<double>(begin: 0, end: 1).animate(_animationController);
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(_animationController);
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -58,53 +58,53 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ================= LOGIN HANDLER =================
- Future<void> handleLogin() async {
-  if (isLoading) return;
+  Future<void> handleLogin() async {
+    if (isLoading) return;
 
-  final pan = panController.text.trim().toUpperCase();
-  final password = passwordController.text.trim();
+    final pan = panController.text.trim().toUpperCase();
+    final password = passwordController.text.trim();
 
-  if (pan.length != 10) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Enter valid PAN number")),
-    );
-    return;
-  }
+    if (pan.length != 10) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter valid PAN number")));
+      return;
+    }
 
-  if (password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Enter password")),
-    );
-    return;
-  }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter password")));
+      return;
+    }
 
-  setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-  try {
-    final data = await ApiService.login(pan, password);
+    try {
+      final data = await ApiService.login(pan, password);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("jwt", data["token"]);
+      debugPrint("response from backend login $data");
 
-    if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("jwt", data["token"]);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const DashboardScreen(),
-      ),
-    );
-  } catch (e) {
-    debugPrint("Login error: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Login failed. Please try again")),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } catch (e) {
+      debugPrint("Login error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login failed. Please try again")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           child: ClipOval(
                             child: Image.asset(
-                              'assets/images/Zypay_background.jpeg',
+                              'assets/images/fintree_img.png',
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -199,18 +199,23 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               const SizedBox(height: 12),
+
+                              /// ✅ PAN FIELD (AUTO UPPERCASE)
                               TextField(
                                 controller: panController,
                                 maxLength: 10,
                                 textCapitalization:
                                     TextCapitalization.characters,
                                 inputFormatters: [
+                                  UpperCaseTextFormatter(),
                                   FilteringTextInputFormatter.allow(
-                                    RegExp('[A-Z0-9]'),
+                                    RegExp('[a-zA-Z0-9]'),
                                   ),
                                 ],
                                 decoration: _inputDecoration(
-                                    "ABCDE1234F", Icons.badge),
+                                  "ABCDE1234F",
+                                  Icons.badge,
+                                ),
                               ),
 
                               const SizedBox(height: 20),
@@ -228,10 +233,36 @@ class _LoginScreenState extends State<LoginScreen>
                                 controller: passwordController,
                                 obscureText: true,
                                 decoration: _inputDecoration(
-                                    "Enter password", Icons.lock),
+                                  "Enter password",
+                                  Icons.lock,
+                                ),
                               ),
 
                               const SizedBox(height: 32),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ForgotPasswordScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    "Forgot Password?",
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                          const SizedBox(height: 16),
 
                               SizedBox(
                                 width: double.infinity,
@@ -253,8 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                         const Text(
                           "SSL Encrypted • Secure Session",
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.white),
+                          style: TextStyle(fontSize: 12, color: Colors.white),
                         ),
                       ],
                     ),
@@ -279,6 +309,20 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
+    );
+  }
+}
+
+/// ================= UPPERCASE FORMATTER =================
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:flutter_application_1/presentation/repayments/repayment_screen.d
 import 'package:flutter_application_1/presentation/dashboard/support_screen.dart';
 import 'package:flutter_application_1/presentation/profile/user_profile_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter_application_1/core/session/app_session.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -25,7 +24,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
 
-  String appVersion = ""; // ✅ ADD THIS
+  String appVersion = ""; //  ADD THIS
 
   Map<String, dynamic> loanData = {};
 
@@ -39,31 +38,44 @@ Future<void> loadAppVersion() async {
   final info = await PackageInfo.fromPlatform();
   if (mounted) {
     setState(() {
-      appVersion = "v${info.version}+${info.buildNumber}";
+      appVersion = "v${info.version}.${info.buildNumber}";
     });
   }
 }
 
-  // ================= FETCH DASHBOARD DATA =================
+
+ 
+// ================= FETCH DASHBOARD DATA =================
 Future<void> loadDashboardData() async {
+  debugPrint("========== DASHBOARD LOAD START ==========");
+
   try {
-    debugPrint("Dashboard → loading via JWT");
+    final data = await ApiService.getDashboardSummary();
 
-    // ✅ NEW API (JWT based)
-    loanData = await ApiService.getDashboardSummary();
+    debugPrint("Dashboard API data: $data");
 
-    if (loanData.isEmpty) {
-      debugPrint("No loan data found");
-    } else {
-      debugPrint("Dashboard LAN: ${loanData['lan']}");
-    }
+    if (!mounted) return;
+
+    setState(() {
+      loanData = data;
+      isLoading = false;
+    });
   } catch (e) {
-    debugPrint("Dashboard API error: $e");
+    debugPrint("Dashboard error: $e");
+
+    if (!mounted) return;
+
+    setState(() => isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Failed to load dashboard"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
-  if (mounted) {
-    setState(() => isLoading = false);
-  }
+  debugPrint("========== DASHBOARD LOAD END ==========");
 }
 
 
@@ -206,7 +218,7 @@ Future<void> loadDashboardData() async {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
           child: Text(
-            appVersion.isEmpty ? "" : "ZyPay App $appVersion",
+            appVersion.isEmpty ? "" : "FinTree App $appVersion",
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,
@@ -227,10 +239,10 @@ Future<void> loadDashboardData() async {
           text: const TextSpan(
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             children: [
-              TextSpan(text: "Zy", style: TextStyle(color: Colors.green)),
+              TextSpan(text: "Fin", style: TextStyle(color: Color.fromARGB(255, 76, 119, 175))),
               TextSpan(
-                text: "Pay",
-                style: TextStyle(color: Color(0xFF4D92CA)),
+                text: "Tree",
+                style: TextStyle(color: Color.fromARGB(255, 77, 202, 104)),
               ),
             ],
           ),
@@ -239,11 +251,13 @@ Future<void> loadDashboardData() async {
 
       // ================= BODY =================
       body: SingleChildScrollView(
+        
         padding: const EdgeInsets.all(20),
         child: Column(
+          
           children: [
             Image.asset(
-              'assets/images/Zypay_logo.png',
+              'assets/images/fintree_img.png',
               height: 140,
               fit: BoxFit.contain,
             ),
@@ -300,11 +314,11 @@ Future<void> loadDashboardData() async {
               ),
             ),
 
-            const SizedBox(height: 20),
-            _largeButton(context, "Pay Next EMI", Icons.payment),
-            const SizedBox(height: 16),
-            _largeButton(context, "Foreclose", Icons.mobile_off),
-            const SizedBox(height: 16),
+            // const SizedBox(height: 20),
+            // _largeButton(context, "Pay Next EMI", Icons.payment),
+            // const SizedBox(height: 16),
+            // _largeButton(context, "Foreclose", Icons.mobile_off),
+            // const SizedBox(height: 16),
             // _largeButton(
             //   context,
             //   "Call Support",
