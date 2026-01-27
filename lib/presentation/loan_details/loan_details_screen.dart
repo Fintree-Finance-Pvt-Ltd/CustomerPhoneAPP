@@ -27,7 +27,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     try {
       debugPrint("LoanDetails → loading via JWT");
 
-      // ✅ SINGLE JWT-BASED API
+      // SINGLE JWT-BASED API
       loanData = await ApiService.getLoanDetails();
     } catch (e) {
       debugPrint("LoanDetails API error: $e");
@@ -127,7 +127,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                "In case of any issue, call ZyPay help center.",
+                                "In case of any issue, call FinTree help center.",
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.blue,

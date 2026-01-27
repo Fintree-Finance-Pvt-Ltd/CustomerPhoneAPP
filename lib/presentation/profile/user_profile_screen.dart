@@ -22,8 +22,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> loadProfile() async {
     try {
       debugPrint("Profile → loading via JWT");
-
-      // ✅ SINGLE JWT-BASED API
       profile = await ApiService.getProfile();
     } catch (e) {
       debugPrint("Profile API error: $e");
@@ -54,6 +52,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      // ================= AVATAR =================
                       CircleAvatar(
                         radius: 45,
                         backgroundColor: Colors.blue.shade100,
@@ -66,6 +65,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       const SizedBox(height: 16),
 
+                      // ================= NAME =================
                       Text(
                         fullName.isNotEmpty
                             ? fullName
@@ -78,6 +78,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       const SizedBox(height: 6),
 
+                      // ================= LAN =================
                       Text(
                         "LAN: ${profile['lan'] ?? '-'}",
                         style: const TextStyle(color: Colors.grey),
@@ -85,33 +86,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       const SizedBox(height: 30),
 
-                      _infoTile(
+                      // ================= INFO TILES =================
+                      _infoTileIfPresent(
                         "Mobile Number",
-                        profile['mobile_number']?.toString() ?? "-",
+                        profile['mobile_number'],
                         Icons.phone,
                       ),
 
-                      _infoTile(
+                      _infoTileIfPresent(
                         "Email",
-                        profile['email_id']?.toString() ?? "-",
+                        profile['email_id'],
                         Icons.email,
                       ),
 
-                      _infoTile(
+                      _infoTileIfPresent(
                         "Gender",
-                        profile['gender']?.toString() ?? "-",
+                        profile['gender'],
                         Icons.person_outline,
                       ),
 
-                      _infoTile(
+                      _infoTileIfPresent(
                         "Date of Birth",
-                        profile['dob']?.toString().split('T').first ?? "-",
+                        profile['dob']?.toString()
+                                .split('T')
+                                .first,
                         Icons.cake,
                       ),
 
-                      _infoTile(
+                      _infoTileIfPresent(
                         "Account Status",
-                        profile['status']?.toString() ?? "Active",
+                        profile['status'],
                         Icons.check_circle,
                       ),
                     ],
@@ -120,8 +124,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // ================= INFO TILE =================
-  Widget _infoTile(String label, String value, IconData icon) {
+  // ================= CONDITIONAL INFO TILE =================
+  Widget _infoTileIfPresent(
+    String label,
+    dynamic rawValue,
+    IconData icon,
+  ) {
+    // ❌ hide if null
+    if (rawValue == null) return const SizedBox.shrink();
+
+    final value = rawValue.toString().trim();
+
+    // ❌ hide if empty or "null"
+    if (value.isEmpty || value.toLowerCase() == "null") {
+      return const SizedBox.shrink();
+    }
+
+    // ✅ show tile
+    return _infoTile(label, value, icon);
+  }
+
+  // ================= ACTUAL INFO TILE =================
+  Widget _infoTile(
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),

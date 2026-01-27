@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/api_service.dart';
+import 'package:intl/intl.dart';
 
 class Repayment extends StatefulWidget {
   const Repayment({super.key});
@@ -56,8 +57,8 @@ class _RepaymentState extends State<Repayment> {
                     final bool isPaid =
                         item['status'].toString().toUpperCase() == "PAID";
 
-                    final String dueDate =
-                        item['due_date'].toString().split('T')[0];
+                   final DateTime parsedDate = DateTime.parse(item['due_date']);
+                   final String dueDate = DateFormat('dd-MM-yyyy').format(parsedDate);
 
                     final String amount =
                         item['emi']?.toString() ??

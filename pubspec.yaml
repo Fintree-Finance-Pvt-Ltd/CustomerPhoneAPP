@@ -33,9 +33,11 @@ dependencies:
     sdk: flutter
   url_launcher: ^6.2.5
   shared_preferences: ^2.2.2
-  package_info_plus: ^8.0.0
-  flutter_dotenv: ^5.1.0   
-  # syncfusion_flutter_pdfviewer: ^24.2.9
+  package_info_plus: ^9.0.0
+  flutter_dotenv: ^6.0.0   
+  syncfusion_flutter_pdfviewer: ^32.1.25
+  intl: ^0.20.2
+  
  
   
 
@@ -69,6 +71,7 @@ flutter:
     - .env
     - assets/images/Zypay_background.jpeg
     - assets/images/Zypay_logo.png
+    - assets/images/fintree_img.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
