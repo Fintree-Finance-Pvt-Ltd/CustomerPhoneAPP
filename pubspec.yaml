@@ -72,6 +72,7 @@ flutter:
     - assets/images/Zypay_background.jpeg
     - assets/images/Zypay_logo.png
     - assets/images/fintree_img.png
+    - assets/images/fintree_img.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
