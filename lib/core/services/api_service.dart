@@ -42,25 +42,36 @@ class ApiService {
   // ===============================
   // 🔓 LOGIN (PAN + PASSWORD → JWT)
   // ===============================
-  static Future<Map<String, dynamic>> login(
-    String panNumber,
-    String password,
-  ) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/login"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "panNumber": panNumber,
-        "password": password,
-      }),
+
+static Future<Map<String, dynamic>> login(
+  String panNumber,
+  String password,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/login"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "panNumber": panNumber,
+      "password": password,
+    }),
+  );
+
+  if (res.statusCode == 200) {
+    final data = jsonDecode(res.body);
+
+    // ✅ SAVE JWT + LOGIN TIME HERE
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(jwtKey, data["token"]);
+    await prefs.setInt(
+      "login_time",
+      DateTime.now().millisecondsSinceEpoch,
     );
 
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body);
-    } else {
-      throw Exception("Login failed: ${res.body}");
-    }
+    return data;
+  } else {
+    throw Exception("Login failed: ${res.body}");
   }
+}
 
  // ===============================
 // 🏠 DASHBOARD SUMMARY (JWT BASED)
@@ -146,10 +157,11 @@ static Future<Map<String, dynamic>> getDashboardSummary() async {
   // ===============================
   // 🚪 LOGOUT
   // ===============================
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(jwtKey);
-  }
+ static Future<void> logout() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear(); // clears jwt + login_time
+}
+
 
   // ===============================
 // 📄 LOAN DETAILS (JWT BASED)
@@ -255,6 +267,30 @@ static Future<void> resetPassword({
     throw Exception("Reset password failed: ${res.body}");
   }
 }
+
+
+static Future<bool> isSessionValid() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  final token = prefs.getString("jwt");
+  final loginTime = prefs.getInt("login_time");
+
+  if (token == null || loginTime == null) return false;
+
+  // Session = 48 hours
+  const sessionDuration = Duration(hours: 48);
+
+  final loginDate =
+      DateTime.fromMillisecondsSinceEpoch(loginTime);
+
+  if (DateTime.now().difference(loginDate) > sessionDuration) {
+    await logout();
+    return false;
+  }
+
+  return true;
+}
+
 
 
 }

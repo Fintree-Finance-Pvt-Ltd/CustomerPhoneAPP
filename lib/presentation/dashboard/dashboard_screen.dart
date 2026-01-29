@@ -89,7 +89,7 @@ Future<void> loadDashboardData() async {
 
     // ================= SAFE VALUES =================
     final String customerName =
-        loanData['customer_name'] ?? "ZyPay Customer";
+        loanData['customer_name'] ?? "Fintree Customer";
     final String lan = loanData['lan'] ?? "-";
     final double emiAmount =
     double.tryParse(loanData['emi_amount'].toString()) ?? 0.0;
@@ -202,16 +202,19 @@ Future<void> loadDashboardData() async {
 
       const Divider(),
 
-      // ================= LOGOUT =================
-      _drawerItem(context, Icons.logout, "Logout", () {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const LoginScreen(),
-          ),
-          (route) => false,
-        );
-      }),
+    // ================= LOGOUT =================
+_drawerItem(context, Icons.logout, "Logout", () async {
+  await ApiService.logout(); // ✅ Clear JWT + login_time
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const LoginScreen(),
+    ),
+    (route) => false,
+  );
+}),
+
 
       // ================= APP VERSION =================
       Padding(
